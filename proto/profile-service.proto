@@ -1,0 +1,43 @@
+syntax = "proto3";
+package pb;
+
+service ProfileService {
+  rpc createProfile(stream Profile) returns (ProfileId);
+  //rpc readProfile(ProfileId) returns (stream Profile);
+  //rpc updateProfile(stream Profile) returns (ProfileId);
+  //rpc deleteProfile(ProfileId) returns (Status);
+}
+
+message Date {
+  int32 day = 1;
+  int32 month = 2;
+  int32 year = 3;
+}
+
+message ImageData {
+  bytes data = 1;
+}
+
+message ProfileData {
+  string id = 1;
+  string givenName = 2;
+  string lastName = 3;
+  Date birthday = 4;
+  string email = 5;
+  string imageType = 6;
+}
+
+message Profile {
+  oneof profile_oneof {
+    ProfileData profileData = 1;
+    ImageData imageData = 2;
+  }
+}
+
+message ProfileId {
+  string id = 1;
+}
+
+message Status {
+  string status = 1;
+}
