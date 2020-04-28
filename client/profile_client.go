@@ -13,10 +13,6 @@ import (
 	"google.golang.org/grpc"
 )
 
-const (
-	folderPrefix = "../"
-)
-
 type ProfileClient struct {
 	service pb.ProfileServiceClient
 }
@@ -27,8 +23,7 @@ func NewProfileClient(cc *grpc.ClientConn) *ProfileClient {
 }
 
 func (profileClient *ProfileClient) UploadImage(imagePath string) {
-	relativeImagePath := folderPrefix + imagePath
-	file, err := os.Open(relativeImagePath)
+	file, err := os.Open(imagePath)
 	if err != nil {
 		log.Fatalf("Not able to open image: ", err)
 	}
@@ -39,21 +34,21 @@ func (profileClient *ProfileClient) UploadImage(imagePath string) {
 
 	stream, err := profileClient.service.CreateProfile(ctx)
 	if err != nil {
-		log.Fatalf("NOt able to upload image: ", err)
+		log.Fatalf("Not able to upload image: ", err)
 	}
 
 	req := &pb.Profile{
 		ProfileOneof: &pb.Profile_ProfileData{
 			ProfileData: &pb.ProfileData{
 				GivenName: "Valentin",
-				LastName: "Widmer",
+				LastName:  "Widmer",
 				Birthday: &pb.Date{
-					Day: 2,
+					Day:   2,
 					Month: 11,
-					Year: 1994,
+					Year:  1994,
 				},
-				Email: "valentin.widmer@protonmail.com",
-				ImageType: filepath.Ext(relativeImagePath),
+				Email:     "valentin.widmer@protonmail.com",
+				ImageType: filepath.Ext(imagePath),
 			},
 		},
 	}
@@ -68,7 +63,7 @@ func (profileClient *ProfileClient) UploadImage(imagePath string) {
 
 	for {
 		n, err := reader.Read(buffer)
-		if err ==  io.EOF {
+		if err == io.EOF {
 			break
 		}
 
@@ -96,6 +91,5 @@ func (profileClient *ProfileClient) UploadImage(imagePath string) {
 	}
 
 	log.Printf("Image has been uploade with id: %s", res.GetId())
-
 
 }
