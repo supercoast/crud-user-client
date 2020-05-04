@@ -3,8 +3,8 @@ package client
 import (
 	"bufio"
 	"context"
+	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -22,10 +22,10 @@ func NewProfileClient(cc *grpc.ClientConn) *ProfileClient {
 	return &ProfileClient{service}
 }
 
-func (profileClient *ProfileClient) UploadImage(imagePath string) {
+func (profileClient *ProfileClient) UploadImage(imagePath string) (string, error) {
 	file, err := os.Open(imagePath)
 	if err != nil {
-		log.Fatalf("Not able to open image: ", err)
+		return "", fmt.Errorf("Not able to open image: ", err)
 	}
 	defer file.Close()
 
@@ -34,7 +34,7 @@ func (profileClient *ProfileClient) UploadImage(imagePath string) {
 
 	stream, err := profileClient.service.CreateProfile(ctx)
 	if err != nil {
-		log.Fatalf("Not able to upload image: ", err)
+		return "", fmt.Errorf("Not able to upload image: ", err)
 	}
 
 	req := &pb.Profile{
@@ -55,7 +55,7 @@ func (profileClient *ProfileClient) UploadImage(imagePath string) {
 
 	err = stream.Send(req)
 	if err != nil {
-		log.Fatal("Not able to send profile info to server: ", err, stream.RecvMsg(nil))
+		return "", fmt.Errorf("Not able to send profile info to server: ", err, stream.RecvMsg(nil))
 	}
 
 	reader := bufio.NewReader(file)
@@ -68,7 +68,7 @@ func (profileClient *ProfileClient) UploadImage(imagePath string) {
 		}
 
 		if err != nil {
-			log.Fatalf("Not able to read chunk to buffer: ", err)
+			return "", fmt.Errorf("Not able to read chunk to buffer: ", err)
 		}
 
 		req := &pb.Profile{
@@ -81,15 +81,15 @@ func (profileClient *ProfileClient) UploadImage(imagePath string) {
 
 		err = stream.Send(req)
 		if err != nil {
-			log.Fatal("Not able to send chunk to server: ", err, stream.RecvMsg(nil))
+			return "", fmt.Errorf("Not able to send chunk to server: ", err, stream.RecvMsg(nil))
 		}
 	}
 
 	res, err := stream.CloseAndRecv()
 	if err != nil {
-		log.Fatalf("Not able to receive response: ", err)
+		return "", fmt.Errorf("Not able to receive response: ", err)
 	}
 
-	log.Printf("Image has been uploade with id: %s", res.GetId())
+	return res.GetId(), nil
 
 }
