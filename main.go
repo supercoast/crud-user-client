@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/supercoast/crud-user-client/client"
+	"github.com/supercoast/crud-user-client/pb"
 	"google.golang.org/grpc"
 )
 
@@ -16,12 +17,11 @@ const (
 )
 
 func main() {
+	email := flag.String("email", "", "Email of user")
+	lastName := flag.String("lastname", "", "Lastname of user")
+	givenName := flag.String("givenname", "", "Given name of user")
 	imagePath := flag.String("imagepath", "", "Path to image for the upload")
 	flag.Parse()
-
-	if !strings.HasPrefix(*imagePath, "/") {
-		fmt.Println("Please provide absolut path for image: ", *imagePath)
-	}
 
 	conn, err := grpc.Dial(strings.Join([]string{address, port}, ":"), grpc.WithInsecure())
 	if err != nil {
@@ -30,11 +30,27 @@ func main() {
 	defer conn.Close()
 
 	c := client.NewProfileClient(conn)
-	imageId, err := c.UploadImage(*imagePath)
+	profile := &pb.Profile{
+		Email:     *email,
+		LastName:  *lastName,
+		GivenName: *givenName,
+	}
+	profileID, err := c.CreateProfile(profile)
 	if err != nil {
-		log.Fatalf("Image uploade failed: %v", err)
+		log.Fatalf("Profile creation failed: %v", err)
 	}
 
-	log.Printf("Image ID: %s\n", imageId)
+	log.Printf("Profile ID: %s\n", profileID)
+
+	if *imagePath != "" {
+		if !strings.HasPrefix(*imagePath, "/") {
+			fmt.Println("Please provide absolut path for image: ", *imagePath)
+		}
+		imageID, err := c.UploadImage(*imagePath)
+		if err != nil {
+			log.Fatalf("Image uploade failed: %v", err)
+		}
+		log.Printf("Image ID: %s\n", imageID)
+	}
 
 }

@@ -2,10 +2,18 @@ syntax = "proto3";
 package pb;
 
 service ProfileService {
-  rpc createProfile(stream Profile) returns (ProfileId);
+  rpc createImage(stream Image) returns (ImageId);
+  rpc createProfile(Profile) returns (ProfileId);
   //rpc readProfile(ProfileId) returns (stream Profile);
   //rpc updateProfile(stream Profile) returns (ProfileId);
   //rpc deleteProfile(ProfileId) returns (Status);
+}
+
+message Image {
+  oneof image_oneof {
+    ImageMetadata imageMetaData = 1;
+    ImageData imageData = 2;
+  }
 }
 
 message Date {
@@ -18,26 +26,26 @@ message ImageData {
   bytes data = 1;
 }
 
-message ProfileData {
+message ImageMetadata {
+  string type = 1;
+}
+
+message Profile {
   string id = 1;
   string givenName = 2;
   string lastName = 3;
   Date birthday = 4;
   string email = 5;
-  string imageType = 6;
-}
-
-message Profile {
-  oneof profile_oneof {
-    ProfileData profileData = 1;
-    ImageData imageData = 2;
-  }
+  string imageId = 6;
 }
 
 message ProfileId {
   string id = 1;
 }
 
-message Status {
-  string status = 1;
+message ImageId {
+  string id = 1;
 }
+
+
+

@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/supercoast/crud-user-client/pb"
@@ -22,6 +22,19 @@ func NewProfileClient(cc *grpc.ClientConn) *ProfileClient {
 	return &ProfileClient{service}
 }
 
+func (profileClient *ProfileClient) CreateProfile(profile *pb.Profile) (string, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	profileID, err := profileClient.service.CreateProfile(ctx, profile)
+	if err != nil {
+		return "", fmt.Errorf("Couldn't create profile: %v", err)
+	}
+
+	return profileID.GetId(), nil
+
+}
+
 func (profileClient *ProfileClient) UploadImage(imagePath string) (string, error) {
 	file, err := os.Open(imagePath)
 	if err != nil {
@@ -32,30 +45,24 @@ func (profileClient *ProfileClient) UploadImage(imagePath string) (string, error
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	stream, err := profileClient.service.CreateProfile(ctx)
+	stream, err := profileClient.service.CreateImage(ctx)
 	if err != nil {
 		return "", fmt.Errorf("Not able to upload image: ", err)
 	}
 
-	req := &pb.Profile{
-		ProfileOneof: &pb.Profile_ProfileData{
-			ProfileData: &pb.ProfileData{
-				GivenName: "Valentin",
-				LastName:  "Widmer",
-				Birthday: &pb.Date{
-					Day:   2,
-					Month: 11,
-					Year:  1994,
-				},
-				Email:     "valentin.widmer@protonmail.com",
-				ImageType: filepath.Ext(imagePath),
+	imageType := "." + strings.Split(imagePath, ".")[1]
+
+	req := &pb.Image{
+		ImageOneof: &pb.Image_ImageMetaData{
+			ImageMetaData: &pb.ImageMetadata{
+				Type: imageType,
 			},
 		},
 	}
 
 	err = stream.Send(req)
 	if err != nil {
-		return "", fmt.Errorf("Not able to send profile info to server: ", err, stream.RecvMsg(nil))
+		return "", fmt.Errorf("Not able to send image metadata info to server: ", err, stream.RecvMsg(nil))
 	}
 
 	reader := bufio.NewReader(file)
@@ -71,8 +78,8 @@ func (profileClient *ProfileClient) UploadImage(imagePath string) (string, error
 			return "", fmt.Errorf("Not able to read chunk to buffer: ", err)
 		}
 
-		req := &pb.Profile{
-			ProfileOneof: &pb.Profile_ImageData{
+		req := &pb.Image{
+			ImageOneof: &pb.Image_ImageData{
 				ImageData: &pb.ImageData{
 					Data: buffer[:n],
 				},
